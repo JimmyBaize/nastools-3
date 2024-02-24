@@ -1,19 +1,23 @@
 FROM alpine:3.17 AS Builder
-RUN apk add --no-cache --virtual .build-deps \
+RUN sed -i 's/dl-cdn.alpinelinux.org/mirrors.tuna.tsinghua.edu.cn/g' /etc/apk/repositories && \
+    apk update && \
+    apk upgrade && \
+    apk add --no-cache --virtual .build-deps \
         libffi-dev \
         gcc \
         musl-dev \
         libxml2-dev \
         libxslt-dev \
-    && apk add --no-cache $(echo $(wget --no-check-certificate -qO- https://raw.githubusercontent.com/JimmyBaize/nas-tools/master/package_list.txt)) \
-    && ln -sf /usr/bin/python3 /usr/bin/python \
+    && apk add --no-cache $(echo $(wget --no-check-certificate -qO- https://raw.githubusercontent.com/JimmyBaize/nastools-3/master/package_list.txt))
+RUN ln -sf /usr/bin/python3 /usr/bin/python \
     && curl https://rclone.org/install.sh | bash \
     && if [ "$(uname -m)" = "x86_64" ]; then ARCH=amd64; elif [ "$(uname -m)" = "aarch64" ]; then ARCH=arm64; fi \
-    && curl https://dl.min.io/client/mc/release/linux-${ARCH}/mc --create-dirs -o /usr/bin/mc \
-    && chmod +x /usr/bin/mc \
+    && curl https://dl.minio.org.cn/client/mc/release/linux-${ARCH}/mc --create-dirs -o /usr/bin/mc \
+    && chmod +x /usr/bin/mc 
+RUN pip config set global.index-url https://pypi.tuna.tsinghua.edu.cn/simple \
     && pip install --upgrade pip setuptools wheel \
-    && pip install cython \
-    && pip install -r https://raw.githubusercontent.com/JimmyBaize/nas-tools/master/requirements.txt \
+    && pip install cython 
+RUN pip install -r https://raw.githubusercontent.com/JimmyBaize/nastools-3/master/requirements.txt \
     && apk del --purge .build-deps \
     && rm -rf /tmp/* /root/.cache /var/cache/apk/*
 COPY --chmod=755 ./rootfs /
@@ -33,7 +37,7 @@ ENV S6_SERVICES_GRACETIME=30000 \
     NASTOOL_CN_UPDATE=true \
     NASTOOL_VERSION=master \
     PS1="\u@\h:\w \$ " \
-    REPO_URL="https://github.com/JimmyBaize/nas-tools.git" \
+    REPO_URL="https://github.com/JimmyBaize/nastools-3.git" \
     PYPI_MIRROR="https://pypi.tuna.tsinghua.edu.cn/simple" \
     ALPINE_MIRROR="mirrors.ustc.edu.cn" \
     PUID=0 \
